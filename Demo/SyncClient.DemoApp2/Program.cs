@@ -3,7 +3,7 @@ using SyncClient.Services.SocketSyncServices;
 using System;
 using System.Threading.Tasks;
 
-namespace SyncClient.DemoApp
+namespace SyncClient.DemoApp2
 {
     class Program
     {
