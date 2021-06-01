@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Configuration;
 using Serilog;
 using SimpleTCP;
 using SyncClient.Shared;
@@ -18,8 +18,8 @@ namespace SyncClient.Services.SocketSyncServices
 
         private DateTime currentTime => DateTime.UtcNow;
 
-        public HostMessaingHandler(string clientId, object extraInfo)
-            : base(clientId)
+        public HostMessaingHandler(IConfiguration configuration, string clientId, object extraInfo)
+            : base(configuration, clientId)
         {
             this.extraInfo = extraInfo;
             connector = new SimpleTcpServer
@@ -36,7 +36,7 @@ namespace SyncClient.Services.SocketSyncServices
                 return Task.FromResult(true);
             }
 
-            var conn = connector.Start(DefaultPort);
+            var conn = connector.Start(Configuration.Port);
             if (false == conn.IsStarted)
             {
                 return Task.FromResult(false);
@@ -85,6 +85,7 @@ namespace SyncClient.Services.SocketSyncServices
 
         public override Task DisconnectAsync()
         {
+            Log.Verbose("Disconnected");
             if (false == ConnectorReady())
             {
                 return Task.CompletedTask;
@@ -103,7 +104,7 @@ namespace SyncClient.Services.SocketSyncServices
                 return Task.CompletedTask;
             }
 
-            var inactiveClientIds = clientInfo.Clients.Where(it => it.Value.AddMinutes(5) <= currentTime).ToList();
+            var inactiveClientIds = clientInfo.Clients.Where(it => it.Value.AddMinutes(2) <= currentTime).ToList();
             foreach (var item in inactiveClientIds)
             {
                 clientInfo.Clients.Remove(item.Key);

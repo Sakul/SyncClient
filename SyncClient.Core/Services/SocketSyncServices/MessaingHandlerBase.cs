@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Configuration;
 using SyncClient.Services.SocketSyncServices.Models;
 using SyncClient.Shared;
 using System;
@@ -11,12 +11,23 @@ namespace SyncClient.Services.SocketSyncServices
     {
         private const char DelimiterCharacter = '#';
         protected const byte Delimiter = (byte)DelimiterCharacter;
-        protected const int DefaultPort = 5003;
+        protected const string SocketSync = nameof(SocketSync);
+        protected readonly SocketSyncOptions Configuration;
 
         public string ClientId { get; }
-
-        public MessaingHandlerBase(string clientId)
-            => ClientId = clientId;
+        public MessaingHandlerBase(IConfiguration configuration, string clientId)
+        {
+            ClientId = clientId;
+            const string SocketSync = nameof(SocketSync);
+            Configuration = configuration
+                .GetSection(SocketSync)
+                .Get<SocketSyncOptions>();
+            Configuration ??= new SocketSyncOptions
+            {
+                Port = 5003,
+                HostUrl = "127.0.0.1",
+            };
+        }
 
         protected string CreateMessage(MessageTopic topic, ClientInfo clientInfo)
         {

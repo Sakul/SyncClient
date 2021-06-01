@@ -1,5 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Configuration;
 using Serilog;
+using SyncClient.Models;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,11 +13,17 @@ namespace SyncClient.Services.SocketSyncServices
         private string clientId;
         private object extraInfo;
         private readonly Timer syncTimer;
+        private readonly AppSyncOptions appSync;
+        private readonly IConfiguration configuration;
         private IMessagingHandler messagingHandler;
 
-        public SocketSyncService(TimeSpan syncPeriod)
+        public SocketSyncService(IConfiguration configuration)
         {
-            syncTimer = new Timer(syncPeriod.TotalMilliseconds);
+            this.configuration = configuration;
+            const string AppSync = nameof(AppSync);
+            appSync = configuration.GetSection(AppSync).Get<AppSyncOptions>();
+            appSync ??= new AppSyncOptions { Local = 12, Server = 300 };
+            syncTimer = new Timer();
             syncTimer.Elapsed += async (sndr, se) => await messagingHandler?.SyncAsync();
         }
 
@@ -32,7 +39,7 @@ namespace SyncClient.Services.SocketSyncServices
 
         private async Task<bool> BeginAsync(object extraInfo, CancellationToken cancellationToken)
         {
-            await createUniqueClientIdIfNotExist();
+            await createFamilyIdIfNotExist();
             clientId ??= await createSelfClientId();
             var isServiceReady = await createConnectionHandler(cancellationToken);
             if (isServiceReady)
@@ -41,8 +48,8 @@ namespace SyncClient.Services.SocketSyncServices
             }
             return isServiceReady;
 
-            // HACK: bypass create unique client Id
-            Task createUniqueClientIdIfNotExist() => Task.CompletedTask;
+            // HACK: bypass create family Id
+            Task createFamilyIdIfNotExist() => Task.CompletedTask;
 
             // HACK: bypass create self client Id
             Task<string> createSelfClientId() => Task.FromResult(Guid.NewGuid().ToString());
@@ -58,12 +65,22 @@ namespace SyncClient.Services.SocketSyncServices
                 } while (false == cancellationToken.IsCancellationRequested);
                 return null != messagingHandler;
 
-                Task<bool> createHost() => createHandler(new HostMessaingHandler(clientId, extraInfo));
+                async Task<bool> createHost()
+                {
+                    var host = new HostMessaingHandler(configuration, clientId, extraInfo);
+                    if (await createHandler(host))
+                    {
+                        syncTimer.Interval = TimeSpan.FromSeconds(appSync.Server).TotalMilliseconds;
+                        return true;
+                    }
+                    return false;
+                }
                 async Task<bool> createClient()
                 {
-                    var client = new ClientMessagingHandler(clientId);
+                    var client = new ClientMessagingHandler(configuration, clientId);
                     if (await createHandler(client))
                     {
+                        syncTimer.Interval = TimeSpan.FromSeconds(appSync.Local).TotalMilliseconds;
                         client.OnSendMessageFailed += Client_OnSendMessageFailed;
                         return true;
                     }

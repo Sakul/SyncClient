@@ -1,6 +1,8 @@
-﻿using Serilog;
+﻿using Microsoft.Extensions.Configuration;
+using Serilog;
 using SyncClient.Services.SocketSyncServices;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace SyncClient.DemoApp
@@ -14,11 +16,17 @@ namespace SyncClient.DemoApp
                 .WriteTo.Console()
                 .CreateLogger();
 
-            var delay = new Random().Next(1, 7);
-            var sync = new SocketSyncService(TimeSpan.FromSeconds(delay));
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", true)
+                .Build();
+
+            var sync = new SocketSyncService(configuration);
             await sync.BeginAsync();
 
             Console.ReadLine();
+
+            await sync.EndAsync();
         }
     }
 }

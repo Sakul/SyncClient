@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Configuration;
 using Serilog;
 using SimpleTCP;
 using SyncClient.Shared;
@@ -14,7 +14,8 @@ namespace SyncClient.Services.SocketSyncServices
 
         public event EventHandler OnSendMessageFailed;
 
-        public ClientMessagingHandler(string clientId) : base(clientId)
+        public ClientMessagingHandler(IConfiguration configuration, string clientId)
+            : base(configuration, clientId)
         {
             connector = new SimpleTcpClient
             {
@@ -30,8 +31,7 @@ namespace SyncClient.Services.SocketSyncServices
                 return Task.FromResult(true);
             }
 
-            const string Localhost = "127.0.0.1";
-            var conn = connector.Connect(Localhost, DefaultPort);
+            var conn = connector.Connect(Configuration.HostUrl, Configuration.Port);
             if (false == conn.TcpClient.Connected)
             {
                 return Task.FromResult(false);
@@ -39,9 +39,7 @@ namespace SyncClient.Services.SocketSyncServices
 
             sendMessage(MessageTopic.Join);
 
-            Log.Verbose($"ClientId: {ClientId}");
-
-            connector.DelimiterDataReceived += (sndr, se) =>
+            conn.DelimiterDataReceived += (sndr, se) =>
             {
                 var msg = GetMessage(se.MessageString);
                 switch (msg.Topic)
@@ -56,6 +54,9 @@ namespace SyncClient.Services.SocketSyncServices
                     default: break;
                 }
             };
+
+            Log.Verbose($"ClientId: {ClientId}");
+
             return Task.FromResult(true);
         }
 
