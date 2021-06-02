@@ -14,8 +14,8 @@ namespace SyncClient.Services.SocketSyncServices
 
         public event EventHandler OnSendMessageFailed;
 
-        public ClientMessagingHandler(IConfiguration configuration, string clientId)
-            : base(configuration, clientId)
+        public ClientMessagingHandler(IConfiguration configuration, string clientId, object extraInfo)
+            : base(configuration, clientId, extraInfo)
         {
             connector = new SimpleTcpClient
             {

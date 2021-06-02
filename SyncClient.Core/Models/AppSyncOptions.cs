@@ -4,5 +4,6 @@
     {
         public int Local { get; set; }
         public int Server { get; set; }
+        public string SyncApiFqdn { get; set; }
     }
 }
