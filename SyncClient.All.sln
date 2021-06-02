@@ -13,7 +13,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SyncClient.DemoApp", "Demo\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SyncClient.DemoServer", "Demo\SyncClient.DemoServer\SyncClient.DemoServer.csproj", "{6C990CA4-8656-46B9-BF43-396B1B40032C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncClient.DemoApp2", "Demo\SyncClient.DemoApp2\SyncClient.DemoApp2.csproj", "{D128079D-8CB5-4BCD-9C46-FCF76463AB60}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SyncClient.DemoApp2", "Demo\SyncClient.DemoApp2\SyncClient.DemoApp2.csproj", "{D128079D-8CB5-4BCD-9C46-FCF76463AB60}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleClient", "Demo\ConsoleClient\ConsoleClient.csproj", "{727D8ABF-0E3C-4066-AE36-1D64F78D2461}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +43,10 @@ Global
 		{D128079D-8CB5-4BCD-9C46-FCF76463AB60}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D128079D-8CB5-4BCD-9C46-FCF76463AB60}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D128079D-8CB5-4BCD-9C46-FCF76463AB60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{727D8ABF-0E3C-4066-AE36-1D64F78D2461}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{727D8ABF-0E3C-4066-AE36-1D64F78D2461}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{727D8ABF-0E3C-4066-AE36-1D64F78D2461}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{727D8ABF-0E3C-4066-AE36-1D64F78D2461}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -49,6 +55,7 @@ Global
 		{062E1312-E8A0-4D54-B88D-9F0C02C0530F} = {3B84FC68-CD6D-496F-9162-005E2BDC0F0E}
 		{6C990CA4-8656-46B9-BF43-396B1B40032C} = {3B84FC68-CD6D-496F-9162-005E2BDC0F0E}
 		{D128079D-8CB5-4BCD-9C46-FCF76463AB60} = {3B84FC68-CD6D-496F-9162-005E2BDC0F0E}
+		{727D8ABF-0E3C-4066-AE36-1D64F78D2461} = {3B84FC68-CD6D-496F-9162-005E2BDC0F0E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {777FF97A-5473-47E7-A4DF-ABCDB85A3CA1}
