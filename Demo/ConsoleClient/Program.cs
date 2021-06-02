@@ -2,6 +2,9 @@
 using Serilog;
 using SyncClient.Services.SocketSyncServices;
 using System;
+using System.IO;
+using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace ConsoleClient
@@ -15,8 +18,11 @@ namespace ConsoleClient
                 .WriteTo.Console()
                 .CreateLogger();
 
+            var assembly = Assembly.GetEntryAssembly();
+            var resourceStream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.appsettings.json");
+            using var reader = new StreamReader(resourceStream, Encoding.UTF8).BaseStream;
             var configuration = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", true)
+                .AddJsonStream(reader)
                 .Build();
 
             var sync = new SocketSyncService(configuration);
