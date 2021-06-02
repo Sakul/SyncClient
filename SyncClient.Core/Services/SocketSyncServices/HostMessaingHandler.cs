@@ -1,11 +1,14 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Flurl.Http;
+using Microsoft.Extensions.Configuration;
 using Serilog;
 using SimpleTCP;
+using SyncClient.Models;
 using SyncClient.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace SyncClient.Services.SocketSyncServices
@@ -13,39 +16,48 @@ namespace SyncClient.Services.SocketSyncServices
     internal class HostMessaingHandler : MessaingHandlerBase
     {
         private ClientInfo clientInfo;
-        private readonly object extraInfo;
+        private string syncApiUrl;
         private readonly SimpleTcpServer connector;
 
         private DateTime currentTime => DateTime.UtcNow;
 
         public HostMessaingHandler(IConfiguration configuration, string clientId, object extraInfo)
-            : base(configuration, clientId)
+            : base(configuration, clientId, extraInfo)
         {
-            this.extraInfo = extraInfo;
             connector = new SimpleTcpServer
             {
                 Delimiter = Delimiter,
                 StringEncoder = Encoding.ASCII,
             };
+            const string AppSync = nameof(AppSync);
+            var apiFqdn = configuration
+                .GetSection(AppSync)
+                .Get<AppSyncOptions>()
+                ?.SyncApiFqdn ?? throw new ArgumentNullException("AppSync's SyncApiFqdn is missing");
+            var baseUrl = $"https://{apiFqdn}";
+            syncApiUrl = $"{baseUrl}/sync";
         }
 
-        public override Task<bool> ConnectAsync()
+        public override async Task<bool> ConnectAsync()
         {
             if (connector?.IsStarted ?? false)
             {
-                return Task.FromResult(true);
+                return true;
             }
 
             var conn = connector.Start(Configuration.Port);
             if (false == conn.IsStarted)
             {
-                return Task.FromResult(false);
+                return false;
             }
 
             clientInfo = new ClientInfo
             {
                 ClientId = ClientId,
-                Clients = new Dictionary<string, DateTime> { { ClientId, currentTime } }
+                Clients = new Dictionary<string, ClientMetadata>
+                {
+                    { ClientId, new ClientMetadata(currentTime, JsonSerializer.Serialize(ExtraInfo)) }
+                }
             };
 
             conn.DelimiterDataReceived += (sender, se) =>
@@ -57,7 +69,7 @@ namespace SyncClient.Services.SocketSyncServices
                         {
                             Log.Verbose($"Client join: {msg.ClientId}");
                             clientInfo.Clients.Remove(msg.ClientId);
-                            clientInfo.Clients.Add(msg.ClientId, currentTime);
+                            clientInfo.Clients.Add(msg.ClientId, new ClientMetadata(currentTime, msg.ExtraInfo));
                             break;
                         }
                     case MessageTopic.Leave:
@@ -70,17 +82,16 @@ namespace SyncClient.Services.SocketSyncServices
                         {
                             Log.Verbose($"Client maintain: {msg.ClientId}");
                             clientInfo.Clients.Remove(msg.ClientId);
-                            clientInfo.Clients.Add(msg.ClientId, currentTime);
+                            clientInfo.Clients.Add(msg.ClientId, new ClientMetadata(currentTime, msg.ExtraInfo));
                             break;
                         }
                     default: break;
                 }
             };
 
-            // TODO: Connect server
-            Log.Verbose("Connect to the server");
-
-            return Task.FromResult(true);
+            Log.Verbose($"Server Id: {clientInfo.ClientId}");
+            await syncApiUrl.PostJsonAsync(clientInfo);
+            return true;
         }
 
         public override Task DisconnectAsync()
@@ -97,22 +108,21 @@ namespace SyncClient.Services.SocketSyncServices
             return Task.CompletedTask;
         }
 
-        public override Task SyncAsync()
+        public override async Task SyncAsync()
         {
             if (false == ConnectorReady())
             {
-                return Task.CompletedTask;
+                return;
             }
 
-            var inactiveClientIds = clientInfo.Clients.Where(it => it.Value.AddMinutes(2) <= currentTime).ToList();
+            var inactiveClientIds = clientInfo.Clients.Where(it => it.Value.LastUpdatedTime.AddMinutes(2) <= currentTime).ToList();
             foreach (var item in inactiveClientIds)
             {
                 clientInfo.Clients.Remove(item.Key);
             }
 
-            // TODO: Sync to server
             Log.Verbose($"Server sync (clients: {clientInfo.Clients.Count})");
-            return Task.CompletedTask;
+            await syncApiUrl.PostJsonAsync(clientInfo);
         }
 
         protected override bool ConnectorReady()

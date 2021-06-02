@@ -22,7 +22,7 @@ namespace SyncClient.DemoApp
                 .Build();
 
             var sync = new SocketSyncService(configuration);
-            await sync.BeginAsync();
+            await sync.BeginAsync(new { Name = "App01" });
 
             Console.ReadLine();
 

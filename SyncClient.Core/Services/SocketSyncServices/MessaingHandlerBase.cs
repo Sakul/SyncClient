@@ -15,9 +15,12 @@ namespace SyncClient.Services.SocketSyncServices
         protected readonly SocketSyncOptions Configuration;
 
         public string ClientId { get; }
-        public MessaingHandlerBase(IConfiguration configuration, string clientId)
+        protected object ExtraInfo { get; }
+
+        public MessaingHandlerBase(IConfiguration configuration, string clientId, object extraInfo)
         {
             ClientId = clientId;
+            ExtraInfo = extraInfo;
             const string SocketSync = nameof(SocketSync);
             Configuration = configuration
                 .GetSection(SocketSync)
@@ -37,6 +40,7 @@ namespace SyncClient.Services.SocketSyncServices
                 ClientId = ClientId,
                 ClientInfo = clientInfo,
                 Timestamp = DateTime.UtcNow.Ticks,
+                ExtraInfo = JsonSerializer.Serialize(ExtraInfo),
             };
             return JsonSerializer.Serialize(data);
         }

@@ -21,23 +21,26 @@ namespace SyncClient.Services.SocketSyncServices
         {
             this.configuration = configuration;
             const string AppSync = nameof(AppSync);
-            appSync = configuration.GetSection(AppSync).Get<AppSyncOptions>();
-            appSync ??= new AppSyncOptions { Local = 12, Server = 300 };
             syncTimer = new Timer();
             syncTimer.Elapsed += async (sndr, se) => await messagingHandler?.SyncAsync();
+            appSync = configuration.GetSection(AppSync).Get<AppSyncOptions>();
+            if (null == appSync)
+            {
+                throw new ArgumentNullException("Configuration's AppSync is missing");
+            }
         }
 
         public Task<bool> BeginAsync(CancellationToken cancellationToken = default)
-            => BeginAsync(null, cancellationToken);
+            => beginAsync(null, cancellationToken);
 
         public Task<bool> BeginAsync<TExtraInfo>(TExtraInfo extraInfo, CancellationToken cancellationToken = default)
             where TExtraInfo : class
         {
             this.extraInfo = extraInfo;
-            return BeginAsync(extraInfo, cancellationToken);
+            return beginAsync(extraInfo, cancellationToken);
         }
 
-        private async Task<bool> BeginAsync(object extraInfo, CancellationToken cancellationToken)
+        private async Task<bool> beginAsync(object extraInfo, CancellationToken cancellationToken)
         {
             await createFamilyIdIfNotExist();
             clientId ??= await createSelfClientId();
@@ -77,7 +80,7 @@ namespace SyncClient.Services.SocketSyncServices
                 }
                 async Task<bool> createClient()
                 {
-                    var client = new ClientMessagingHandler(configuration, clientId);
+                    var client = new ClientMessagingHandler(configuration, clientId, extraInfo);
                     if (await createHandler(client))
                     {
                         syncTimer.Interval = TimeSpan.FromSeconds(appSync.Local).TotalMilliseconds;
@@ -112,7 +115,7 @@ namespace SyncClient.Services.SocketSyncServices
                 Log.Verbose("Send message failed");
                 await client.DisconnectAsync();
                 messagingHandler = null;
-                await BeginAsync(extraInfo, new CancellationTokenSource().Token);
+                await beginAsync(extraInfo, new CancellationTokenSource().Token);
             }
         }
 
