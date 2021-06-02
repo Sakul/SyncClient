@@ -2,6 +2,10 @@
 using Serilog;
 using SyncClient.Models;
 using System;
+using System.IO;
+using System.Linq;
+using System.Net.NetworkInformation;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Timer = System.Timers.Timer;
@@ -11,6 +15,7 @@ namespace SyncClient.Services.SocketSyncServices
     public class SocketSyncService : ISyncClientService
     {
         private string clientId;
+        private string familyId;
         private object extraInfo;
         private readonly Timer syncTimer;
         private readonly AppSyncOptions appSync;
@@ -42,7 +47,10 @@ namespace SyncClient.Services.SocketSyncServices
 
         private async Task<bool> beginAsync(object extraInfo, CancellationToken cancellationToken)
         {
-            await createFamilyIdIfNotExist();
+            if (string.IsNullOrWhiteSpace(familyId))
+            {
+                familyId = getFamilyId();
+            }
             if (string.IsNullOrWhiteSpace(clientId))
             {
                 clientId = await createSelfClientId();
@@ -54,8 +62,35 @@ namespace SyncClient.Services.SocketSyncServices
             }
             return isServiceReady;
 
-            // HACK: bypass create family Id
-            Task createFamilyIdIfNotExist() => Task.CompletedTask;
+            string getFamilyId()
+            {
+                var assembly = Assembly.GetEntryAssembly();
+                var rootPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                var targetPath = Path.Combine(rootPath, assembly.GetName().Name);
+                Directory.CreateDirectory(targetPath);
+
+                const string TargetExtensionName = ".zip";
+                var zipFiles = Directory.GetFiles(targetPath, $"*{TargetExtensionName}").OrderByDescending(it => it);
+                if (false == zipFiles.Any())
+                {
+                    // TODO: Generate unique family name by Motherboard, CPU, etc
+                    var uniqueFileName = (NetworkInterface.GetAllNetworkInterfaces() ?? new NetworkInterface[0])
+                         .OrderBy(it => it.Id)
+                         .FirstOrDefault()
+                         ?.GetPhysicalAddress()
+                         ?.ToString()
+                         ?? Guid.NewGuid().ToString();
+                    var fileName = $"{DateTime.UtcNow.Ticks}{uniqueFileName}{TargetExtensionName}";
+                    var filePath = Path.Combine(targetPath, fileName);
+                    File.WriteAllText(filePath, Guid.NewGuid().ToString());
+                    return Path.GetFileNameWithoutExtension(fileName);
+                }
+                else
+                {
+                    var fileName = zipFiles.FirstOrDefault();
+                    return Path.GetFileNameWithoutExtension(fileName);
+                }
+            };
 
             // HACK: bypass create self client Id
             Task<string> createSelfClientId() => Task.FromResult(Guid.NewGuid().ToString());
@@ -73,7 +108,7 @@ namespace SyncClient.Services.SocketSyncServices
 
                 async Task<bool> createHost()
                 {
-                    var host = new HostMessaingHandler(configuration, clientId, extraInfo);
+                    var host = new HostMessaingHandler(configuration, familyId, clientId, extraInfo);
                     if (await createHandler(host))
                     {
                         syncTimer.Interval = TimeSpan.FromSeconds(appSync.Server).TotalMilliseconds;
@@ -83,7 +118,7 @@ namespace SyncClient.Services.SocketSyncServices
                 }
                 async Task<bool> createClient()
                 {
-                    var client = new ClientMessagingHandler(configuration, clientId, extraInfo);
+                    var client = new ClientMessagingHandler(configuration, familyId, clientId, extraInfo);
                     if (await createHandler(client))
                     {
                         syncTimer.Interval = TimeSpan.FromSeconds(appSync.Local).TotalMilliseconds;

@@ -14,11 +14,13 @@ namespace SyncClient.Services.SocketSyncServices
         protected const string SocketSync = nameof(SocketSync);
         protected readonly SocketSyncOptions Configuration;
 
+        public string FamilyId { get; }
         public string ClientId { get; }
         protected string ExtraInfoJson { get; }
 
-        public MessaingHandlerBase(IConfiguration configuration, string clientId, object extraInfo)
+        public MessaingHandlerBase(IConfiguration configuration, string familyId, string clientId, object extraInfo)
         {
+            FamilyId = familyId;
             ClientId = clientId;
             ExtraInfoJson = null == extraInfo ? string.Empty : JsonConvert.SerializeObject(extraInfo);
             const string SocketSync = nameof(SocketSync);
@@ -41,6 +43,7 @@ namespace SyncClient.Services.SocketSyncServices
             {
                 Topic = topic,
                 ClientId = ClientId,
+                FamilyId = FamilyId,
                 ClientInfo = clientInfo,
                 Timestamp = DateTime.UtcNow.Ticks,
                 ExtraInfo = ExtraInfoJson,

@@ -20,8 +20,8 @@ namespace SyncClient.Services.SocketSyncServices
 
         private DateTime currentTime => DateTime.UtcNow;
 
-        public HostMessaingHandler(IConfiguration configuration, string clientId, object extraInfo)
-            : base(configuration, clientId, extraInfo)
+        public HostMessaingHandler(IConfiguration configuration, string familyId, string clientId, object extraInfo)
+            : base(configuration, familyId, clientId, extraInfo)
         {
             connector = new SimpleTcpServer
             {
@@ -53,13 +53,14 @@ namespace SyncClient.Services.SocketSyncServices
             clientInfo = new ClientInfo
             {
                 ClientId = ClientId,
+                FamilyId = FamilyId,
                 Clients = new Dictionary<string, ClientMetadata>
                 {
                     { ClientId, new ClientMetadata(currentTime, ExtraInfoJson) }
                 }
             };
 
-            conn.DelimiterDataReceived += (sender, se) =>
+            conn.DelimiterDataReceived += async (sender, se) =>
             {
                 var msg = GetMessage(se.MessageString);
                 switch (msg.Topic)
@@ -69,12 +70,14 @@ namespace SyncClient.Services.SocketSyncServices
                             Log.Verbose($"Client join: {msg.ClientId}");
                             clientInfo.Clients.Remove(msg.ClientId);
                             clientInfo.Clients.Add(msg.ClientId, new ClientMetadata(currentTime, msg.ExtraInfo));
+                            await SyncAsync();
                             break;
                         }
                     case MessageTopic.Leave:
                         {
                             Log.Verbose($"Client leave: {msg.ClientId}");
                             clientInfo.Clients.Remove(msg.ClientId);
+                            await SyncAsync();
                             break;
                         }
                     case MessageTopic.Maintain:
@@ -88,7 +91,8 @@ namespace SyncClient.Services.SocketSyncServices
                 }
             };
 
-            Log.Verbose($"Server Id: {clientInfo.ClientId}");
+            Log.Verbose("SERVER");
+            Log.Verbose($"FamilyId: {FamilyId}, ClientId: {clientInfo.ClientId}");
             Log.Verbose($"ExtraInfo: {ExtraInfoJson}");
             await syncApiUrl.PostJsonAsync(clientInfo);
             return true;

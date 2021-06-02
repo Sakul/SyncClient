@@ -14,8 +14,8 @@ namespace SyncClient.Services.SocketSyncServices
 
         public event EventHandler OnSendMessageFailed;
 
-        public ClientMessagingHandler(IConfiguration configuration, string clientId, object extraInfo)
-            : base(configuration, clientId, extraInfo)
+        public ClientMessagingHandler(IConfiguration configuration, string familyId, string clientId, object extraInfo)
+            : base(configuration, familyId, clientId, extraInfo)
         {
             connector = new SimpleTcpClient
             {
@@ -55,7 +55,8 @@ namespace SyncClient.Services.SocketSyncServices
                 }
             };
 
-            Log.Verbose($"ClientId: {ClientId}");
+            Log.Verbose("CLIENT");
+            Log.Verbose($"FamilyId: {FamilyId}, ClientId: {ClientId}");
             Log.Verbose($"ExtraInfo: {ExtraInfoJson}");
 
             return Task.FromResult(true);
@@ -93,7 +94,7 @@ namespace SyncClient.Services.SocketSyncServices
         {
             try
             {
-                var msg = CreateMessage(topic, new ClientInfo { ClientId = ClientId });
+                var msg = CreateMessage(topic, new ClientInfo { ClientId = ClientId, FamilyId = FamilyId });
                 connector.WriteLine(msg);
             }
             catch (Exception)
