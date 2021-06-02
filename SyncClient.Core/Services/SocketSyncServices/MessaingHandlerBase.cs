@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using SyncClient.Services.SocketSyncServices.Models;
 using SyncClient.Shared;
 using System;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace SyncClient.Services.SocketSyncServices
@@ -15,21 +15,24 @@ namespace SyncClient.Services.SocketSyncServices
         protected readonly SocketSyncOptions Configuration;
 
         public string ClientId { get; }
-        protected object ExtraInfo { get; }
+        protected string ExtraInfoJson { get; }
 
         public MessaingHandlerBase(IConfiguration configuration, string clientId, object extraInfo)
         {
             ClientId = clientId;
-            ExtraInfo = extraInfo;
+            ExtraInfoJson = null == extraInfo ? string.Empty : JsonConvert.SerializeObject(extraInfo);
             const string SocketSync = nameof(SocketSync);
             Configuration = configuration
                 .GetSection(SocketSync)
                 .Get<SocketSyncOptions>();
-            Configuration ??= new SocketSyncOptions
+            if (null == Configuration)
             {
-                Port = 5003,
-                HostUrl = "127.0.0.1",
-            };
+                Configuration = new SocketSyncOptions
+                {
+                    Port = 5003,
+                    HostUrl = "127.0.0.1",
+                };
+            }
         }
 
         protected string CreateMessage(MessageTopic topic, ClientInfo clientInfo)
@@ -40,13 +43,13 @@ namespace SyncClient.Services.SocketSyncServices
                 ClientId = ClientId,
                 ClientInfo = clientInfo,
                 Timestamp = DateTime.UtcNow.Ticks,
-                ExtraInfo = JsonSerializer.Serialize(ExtraInfo),
+                ExtraInfo = ExtraInfoJson,
             };
-            return JsonSerializer.Serialize(data);
+            return JsonConvert.SerializeObject(data);
         }
 
         protected SenderStatus GetMessage(string content)
-            => JsonSerializer.Deserialize<SenderStatus>(content.Replace(DelimiterCharacter, ' '));
+            => JsonConvert.DeserializeObject<SenderStatus>(content.Replace(DelimiterCharacter, ' '));
 
         public abstract Task SyncAsync();
         public abstract Task<bool> ConnectAsync();

@@ -56,6 +56,7 @@ namespace SyncClient.Services.SocketSyncServices
             };
 
             Log.Verbose($"ClientId: {ClientId}");
+            Log.Verbose($"ExtraInfo: {ExtraInfoJson}");
 
             return Task.FromResult(true);
         }

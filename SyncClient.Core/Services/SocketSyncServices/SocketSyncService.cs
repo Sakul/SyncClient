@@ -43,8 +43,11 @@ namespace SyncClient.Services.SocketSyncServices
         private async Task<bool> beginAsync(object extraInfo, CancellationToken cancellationToken)
         {
             await createFamilyIdIfNotExist();
-            clientId ??= await createSelfClientId();
-            var isServiceReady = await createConnectionHandler(cancellationToken);
+            if (string.IsNullOrWhiteSpace(clientId))
+            {
+                clientId = await createSelfClientId();
+            }
+            var isServiceReady = await createConnectionHandler();
             if (isServiceReady)
             {
                 syncTimer.Start();
@@ -57,7 +60,7 @@ namespace SyncClient.Services.SocketSyncServices
             // HACK: bypass create self client Id
             Task<string> createSelfClientId() => Task.FromResult(Guid.NewGuid().ToString());
 
-            async Task<bool> createConnectionHandler(CancellationToken cancellationToken)
+            async Task<bool> createConnectionHandler()
             {
                 do
                 {

@@ -2,10 +2,9 @@
 using Serilog;
 using SyncClient.Services.SocketSyncServices;
 using System;
-using System.IO;
 using System.Threading.Tasks;
 
-namespace SyncClient.DemoApp2
+namespace ConsoleNetFrameworkClient
 {
     class Program
     {
@@ -17,12 +16,11 @@ namespace SyncClient.DemoApp2
                 .CreateLogger();
 
             var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", true)
                 .Build();
 
             var sync = new SocketSyncService(configuration);
-            await sync.BeginAsync(new { AppName = "App02", Version = 2.1 });
+            await sync.BeginAsync(new { Name = "ConsoleNetFrameworkClient", Version = ".NET Framework" });
 
             Console.ReadLine();
 

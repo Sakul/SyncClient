@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace SyncClient.Services.SocketSyncServices
@@ -56,7 +55,7 @@ namespace SyncClient.Services.SocketSyncServices
                 ClientId = ClientId,
                 Clients = new Dictionary<string, ClientMetadata>
                 {
-                    { ClientId, new ClientMetadata(currentTime, JsonSerializer.Serialize(ExtraInfo)) }
+                    { ClientId, new ClientMetadata(currentTime, ExtraInfoJson) }
                 }
             };
 
@@ -90,6 +89,7 @@ namespace SyncClient.Services.SocketSyncServices
             };
 
             Log.Verbose($"Server Id: {clientInfo.ClientId}");
+            Log.Verbose($"ExtraInfo: {ExtraInfoJson}");
             await syncApiUrl.PostJsonAsync(clientInfo);
             return true;
         }
