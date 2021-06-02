@@ -94,7 +94,13 @@ namespace SyncClient.Services.SocketSyncServices
             Log.Verbose("SERVER");
             Log.Verbose($"FamilyId: {FamilyId}, ClientId: {clientInfo.ClientId}");
             Log.Verbose($"ExtraInfo: {ExtraInfoJson}");
-            await syncApiUrl.PostJsonAsync(clientInfo);
+            try
+            {
+                await syncApiUrl.PostJsonAsync(clientInfo);
+            }
+            catch (Exception)
+            {
+            }
             return true;
         }
 

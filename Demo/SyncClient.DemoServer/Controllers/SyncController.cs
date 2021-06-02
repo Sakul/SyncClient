@@ -23,6 +23,14 @@ namespace SyncClient.DemoServer.Controllers
         public Dictionary<string, ClientInfo> Get()
             => clients;
 
+        [HttpGet("sum")]
+        public Summary Summary()
+            => new Summary
+            {
+                TotalMachines = clients.Values.Count,
+                TotalBots = clients.Select(it => it.Value).SelectMany(it => it.Clients).Count(),
+            };
+
         [ApiExplorerSettings(IgnoreApi = true)]
         [HttpPost]
         public void Sync([FromBody] ClientInfo req)
@@ -41,5 +49,11 @@ namespace SyncClient.DemoServer.Controllers
                 clients[req.FamilyId] = req;
             }
         }
+    }
+
+    public class Summary
+    {
+        public int TotalMachines { get; set; }
+        public int TotalBots { get; set; }
     }
 }
